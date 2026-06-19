@@ -71,4 +71,5 @@ Els notebooks detecten automàticament si s'executen a Google Colab, Kaggle o en
 
 - El vídeo del partit es descarrega de 3Cat únicament amb finalitat acadèmica/de recerca; els drets de la retransmissió pertanyen als seus titulars.
 - El projecte té finalitats acadèmiques i de recerca en l'àmbit de l'analítica esportiva i la intel·ligència artificial.
-
+## 🎥 Vídeo de mostra del resultat
+[Mostra del seguiment posicional generat](https://youtu.be/h_xCsxEqGt0)
