@@ -1,83 +1,75 @@
-```markdown
 # Detecció i Seguiment Posicional Automàtic en un partit de l'ACB mitjançant Deep Learning
 
-Aquest repositori conté el codi font i la documentació del projecte enfocat a la **detecció, seguiment i extracció de coordenades posicionals en temps real** dels jugadors i de la pilota durant un partit de bàsquet de la lliga ACB, utilitzant tècniques avançades de *Deep Learning* i visió per computador.
+Pipeline de visió per computador que combina **detecció de persones (YOLOv8)** i un **model de re-identificació (Re-ID) entrenat des de zero** per identificar individualment cada jugador d'un partit de l'ACB a partir d'un vídeo de retransmissió real, i registrar-ne la posició al llarg del partit sense necessitat d'etiquetar manualment cada fotograma.
 
-L'objectiu principal és automatitzar la recollida de dades estadístiques avançades i posicionals (com el *tracking* de jugadors a la pista) a partir de retransmissions de vídeo estàndard o preses de càmera fixa.
+El cas d'ús concret implementat al repositori és el partit **Hiopos Lleida – Joventut de Badalona** (jornada 23, retransmès per 3Cat).
 
-## 🚀 Característiques del Projecte
+## 📋 Què fa el projecte
 
-- **Detecció d'Objectes:** Identificació precisa de jugadors, àrbitres i la pilota utilitzant models d'última generació (com YOLOv8 / YOLOv9 / YOLOv10).
-- **Seguiment Multiobjecte (Object Tracking):** Assignació d'IDs únics a cada jugador al llarg del temps per evitar pèrdues de traçabilitat durant els encreuaments (utilitzant algorismes com ByteTrack, BoT-SORT o DeepSORT).
-- **Homografia i Transformació de Perspectiva:** Projecció de les coordenades en píxels de la pantalla de televisió a un pla 2D real de la pista de bàsquet (ACB), obtenint coordenades $(X, Y)$ reals en metres.
-- **Classificació d'Equips:** Identificació automàtica de l'equip de cada jugador basant-se en l'anàlisi de color de la samarreta (Clustering K-Means / HSV).
+1. Es descarrega el vídeo del partit i, a partir d'un conjunt de fotogrames seleccionats manualment, es retallen imatges de cada jugador amb YOLOv8 per construir un **dataset de Re-ID propi** (un jugador = una classe).
+2. Amb aquest dataset s'entrena una xarxa **ResNet50 modificada** especialitzada en re-identificació de persones.
+3. Es torna a processar el vídeo sencer: YOLOv8 detecta totes les persones de cada fotograma i, per a cada detecció, el model de Re-ID calcula un *embedding* i el compara amb la galeria de jugadors per saber **qui és**.
+4. Es filtren el públic, els tècnics i els plans en primer pla (per mida de la capsa i nombre mínim de jugadors a pista), i es classifica cada jugador pel seu equip (color lila = Lleida, verd = Joventut).
+5. Es desa la posició en píxels dels peus de cada jugador (centre inferior de la *bounding box*) fotograma a fotograma.
+6. El partit es processa per trams, generant per a cadascun un vídeo anotat i un fitxer `.json` amb les coordenades.
 
-## 🛠️ Requisits del Sistema i Instal·lació
+## 📁 Contingut del repositori
 
-Assegura't de tenir instal·lat **Python 3.8+** (es recomana entorn amb GPU compatible amb CUDA per a un rendiment òptim).
+| Fitxer | Descripció |
+|---|---|
+| `creador_dataset.ipynb` | Descarrega el vídeo del partit (`yt-dlp` + 3Cat), detecta persones amb YOLOv8x i, mitjançant una eina interactiva (`ipywidgets`), permet retallar i etiquetar manualment imatges de cada jugador per construir el dataset de Re-ID. |
+| `dataset_reid.zip` | Dataset de Re-ID resultant (1.105 imatges), organitzat en `train/`, `test/query/` i `test/gallery/`, amb una carpeta per classe (jugador). |
+| `etiquetar_i_processar_video.ipynb` | Notebook principal: defineix l'arquitectura, entrena el model de Re-ID, l'avalua i l'aplica sobre el vídeo complet del partit per generar el seguiment posicional. |
+| `posicions_jugadors*.json` | Coordenades de posició de cada jugador, exportades per trams del partit (vegeu format més avall). |
 
-1. Clona aquest repositori al teu ordinador local:
+> ⚠️ Actualment el repositori inclou els JSON dels trams **1–9 i 14–24**; falten els trams 10–13, 20 i 25 (probablement encara per generar o pujar).
+
+### Classes del dataset de Re-ID
+
+26 classes en total: **12 jugadors del Hiopos Lleida**, **12 jugadors de la Joventut de Badalona**, una classe `Arbitre` i una classe `soroll` (fons / falsos positius), per ajudar el model a no confondre públic o àrbitres amb jugadors.
+
+## 🧠 Arquitectura del model de Re-ID
+
+`ResNet50ReID`: una ResNet-50 preentrenada modificada per a tasques de Re-ID:
+
+- *Stride* de la `layer4` reduït a `(1,1)` per conservar més resolució espacial.
+- Capa `BNNeck` (BatchNorm sense bias) entre el *backbone* i el classificador, per equilibrar la *Triplet Loss* i la *Cross-Entropy Loss* durant l'entrenament.
+- Sortida: vector d'*embedding* de 2048 dimensions normalitzat (L2), usat per comparar identitats per distància.
+
+**Hiperparàmetres d'entrenament:** batch size 32, 20 èpoques, learning rate 0.00035.
+
+## 📦 Format de les dades de sortida
+
+Cada `posicions_jugadorsN.json` és un diccionari amb el nom de cada jugador com a clau i la llista de coordenades `[x, y]` (en píxels del fotograma) detectades durant aquell tram:
+
+```json
+{
+  "01_James_Batemon": [[1096, 461], [1104, 485], [1142, 534], ...],
+  "09_R_Rubio": [[823, 502], [831, 498], ...]
+}
+```
+
+## 🛠️ Requisits
+
+- Python 3.9+ amb GPU (CUDA) recomanat per entrenar i fer inferència en temps raonable.
+- Llibreries principals: `torch`, `torchvision`, `ultralytics` (YOLOv8), `opencv-python`, `numpy`, `matplotlib`, `seaborn`, `pillow`, `yt-dlp`, `ipywidgets`.
+
+Els notebooks detecten automàticament si s'executen a **Google Colab**, **Kaggle** o en local, i ajusten les rutes d'entrada/sortida en conseqüència.
+
+## ▶️ Com utilitzar-ho
+
+1. Clona el repositori:
 ```bash
-   git clone [https://github.com/xaviertamarit/Deteccio-i-Seguiment-Posicional-Autom-atic-en-un-partit-de-ACB-mitjanc-ant-Deep-Learning.git](https://github.com/xaviertamarit/Deteccio-i-Seguiment-Posicional-Autom-atic-en-un-partit-de-ACB-mitjanc-ant-Deep-Learning.git)
-   cd Deteccio-i-Seguiment-Posicional-Autom-atic-en-un-partit-de-ACB-mitjanc-ant-Deep-Learning
-
+   git clone https://github.com/xaviertamarit/Deteccio-i-Seguiment-Posicional-Autom-atic-en-un-partit-de-ACB-mitjanc-ant-Deep-Learning.git
 ```
+2. (Opcional) Obre `creador_dataset.ipynb` si vols ampliar o regenerar el dataset de Re-ID a partir d'un altre vídeo. Si només vols entrenar/provar el model, ja tens `dataset_reid.zip` inclòs.
+3. Obre `etiquetar_i_processar_video.ipynb` i executa les cel·les en ordre: carrega el dataset, entrena el model de Re-ID, l'avalua amb el conjunt `query`/`gallery`, i finalment processa el vídeo del partit per generar els vídeos anotats i els `.json` de posicions.
 
-2. Instal·la les dependències necessàries:
+## ⚠️ Notes
 
-```bash
-   pip install -r requirements.txt
-
-```
-
-*(Nota: Si utilitzes llibreries principals directes, les dependències típiques inclouen `ultralytics`, `opencv-python`, `numpy`, `scikit-learn` i `matplotlib`)*.
-
-## 📂 Estructura del Repositori
-
-```text
-├── data/               # Vídeos de mostra de l'ACB i imatges de la pista 2D
-├── models/             # Pesos dels models entrenats o configuracions de YOLO
-├── src/                # Codi font del projecte
-│   ├── detection.py    # Mòdul de detecció i tracking
-│   ├── homography.py   # Càlcul de la matriu d'homografia de la pista
-│   ├── utils.py        # Funcions auxiliars (processament de color, dibuix)
-│   └── main.py         # Script principal d'execució
-├── requirements.txt    # Fitxer de dependències del sistema
-└── README.md           # Documentació del projecte
-
-```
-
-## 💻 Funcionament i Ús
-
-Per executar el pipeline complet de detecció, seguiment i projecció sobre el vídeo de mostra, executa l'script principal:
-
-```bash
-python src/main.py --input data/partit_mostra.mp4 --output output/partit_processat.mp4
-
-```
-
-### Passos del Pipeline:
-
-1. **Calibratge de la pista:** Selecció de punts clau de control per establir la matriu d'homografia entre el vídeo i la pista ACB en 2D.
-2. **Inferència del Model:** Processament del vídeo frame a frame per localitzar jugadors i la pilota.
-3. **Generació del mapa tèrmic / Tracking 2D:** Visualització en paral·lel de la retransmissió i de la representació bidimensional interactiva amb les posicions reals.
-
-## 📊 Resultats i Visualització
-
-El sistema genera un fitxer de vídeo de sortida on es pot veure:
-
-* Bounding boxes (caixes de delimitació) amb l'ID de tracking de cada jugador.
-* Un gràfic a vista de ocell (*minimap* o tàctic) on es mouen punts que representen els jugadors sobre les línies oficials de la pista ACB.
-* Exportació de dades en format `.csv` o `.json` amb les coordenades de cada element per frame per a anàlisi posterior.
+- El vídeo del partit es descarrega de 3Cat únicament amb finalitat acadèmica/de recerca; els drets de la retransmissió pertanyen als seus titulars.
+- El projecte té finalitats acadèmiques i de recerca en l'àmbit de l'analítica esportiva i la intel·ligència artificial.
 
 ## ✒️ Autor
 
-* **Xavier Tamarit** - *Desenvolupament complet del projecte* - [xaviertamarit](https://www.google.com/search?q=https://github.com/xaviertamarit)
-
----
-
-*Projecte desenvolupat amb finalitats acadèmiques i de recerca en l'àmbit de l'analítica esportiva i la intel·ligència artificial.*
-
-```
-
-```
+**Xavier Tamarit** — [github.com/xaviertamarit](https://github.com/xaviertamarit)
