@@ -1,41 +1,83 @@
-# Detecció i Seguiment Posicional Automàtic en un Partit de l'ACB mitjançant Deep Learning
-Python
-PyTorch
-CUDA
-Ultralytics YOLO
-UAB
-Aquest repositori conté la implementació pràctica de l'arquitectura en cascada desacoblada dissenyada per a la detecció, re-identificació (Re-ID) de jugadors i generació de mapes de densitat de pas. El projecte s'ha validat utilitzant com a entrada exclusiva el senyal de vídeo d'una retransmissió comercial de la Lliga ACB (Hiopos Lleida contra Asisa Joventut), oferint una alternativa analítica no invasiva de baix cost.
-📺 Demostració del Producte Final
-Pots visualitzar el resultat del processament del vídeo sencer (amb les caixes de delimitació dinàmiques, etiquetatge nominal d'atletes i l'exclusió activa d'àrbitres en directe) clicant al següent enllaç o imatge de sota:
-👉 Veure el vídeo del partit complet processat a YouTube
-Vídeo del Partit Processat
-📂 Estructura del Repositori
-Aquest repositori s'estructura sota una organització modular de dades que conté tant els fitxers de codi com els actius d'avaluació:
-🧠 Funcionament dels Notebooks
-1. ⁠creacio-dataset.ipynb⁠
-Estableix el flux d'enginyeria semiautomàtic per a la curació de la galeria d'ADN mètric del projecte:
-￼ Descarrega el vídeo des de la CCMA (3cat) mitjançant la utilitat ⁠yt-dlp⁠.
-￼ Llegeix frames en segons d'interès amb OpenCV i extreu caixes candidates de persones amb YOLOv8x.
-￼ Desplega una interfície interactiva amb ⁠ipywidgets⁠ on l'usuari pot assignar cada crop a un jugador o rebutjar-lo amb el botó ⁠❌ IGNORAR ELEMENT⁠.
-￼ El dataset final es compon de 36 captures per classe (20 de train, 15 de gallery i 1 de query) sumant un total de 772 imatges.
-2. ⁠processat-video.ipynb⁠
-És el nucli d'inferència del sistema, encarregat d'analitzar el partit per segments de 7.000 frames:
-￼ Aplica el detector YOLOv8x amb un llindar d'activació del 0.35 i filtre NMS de 0.45.
-￼ Retalla els candidats i calcula el vector normalitzat de 2048 dimensions de la ResNet50 Re-ID.
-￼ Aplica un filtre de seguretat mètric (rebutja talls, repeticions i primers plans si ￼ o l'àrea d'un jugador supera el ￼).
-￼ Integra un protocol defensiu contra errors de memòria de la GPU (CUDA Out Of Memory) mitjançant el context ⁠torch.no_grad()⁠ i desvinculament de tensors amb ⁠.detach().cpu().numpy()⁠.
-3. ⁠creacio-heatmaps.ipynb⁠
-Mòdul analític que importa la base de dades posicional continguda en els fitxers unificats JSON i utilitza Seaborn per projectar els contorns continus d'influència tèrmica mitjançant Estimació de Densitat de Kernel (KDE).
-⚙️ Instruccions per a la Reproducció en Local
-1. Clonar el repositori
-2. Instal·lar les dependències
-Es recomana l'ús d'un entorn de treball aïllat amb Python 3.10:
-3. Executar els experiments
-￼ Executa el fitxer ⁠creacio-dataset.ipynb⁠ per a modificar, ampliar o actualitzar la galeria de control d'ADN.
-￼ Executa ⁠processat-video.ipynb⁠ per a extreure i indexar el moviment d'un clip de partit Full HD en fitxers JSON de píxels.
-￼ Executa ⁠creacio-heatmaps.ipynb⁠ per a generar i superposar les traces de de densitat de pas.
-🎓 Crèdits i Informació Acadèmica
-￼ Autor: Xavier Tamarit
-￼ Titulació: Treball Final de Grau (TFG) en Matemàtica Computacional i Analítica de Dades.
-￼ Institució: Universitat Autònoma de Barcelona (UAB) - Facultat d'Enginyeria.
-￼ Data de defensa: Juny de 2026.
+```markdown
+# Detecció i Seguiment Posicional Automàtic en un partit de l'ACB mitjançant Deep Learning
+
+Aquest repositori conté el codi font i la documentació del projecte enfocat a la **detecció, seguiment i extracció de coordenades posicionals en temps real** dels jugadors i de la pilota durant un partit de bàsquet de la lliga ACB, utilitzant tècniques avançades de *Deep Learning* i visió per computador.
+
+L'objectiu principal és automatitzar la recollida de dades estadístiques avançades i posicionals (com el *tracking* de jugadors a la pista) a partir de retransmissions de vídeo estàndard o preses de càmera fixa.
+
+## 🚀 Característiques del Projecte
+
+- **Detecció d'Objectes:** Identificació precisa de jugadors, àrbitres i la pilota utilitzant models d'última generació (com YOLOv8 / YOLOv9 / YOLOv10).
+- **Seguiment Multiobjecte (Object Tracking):** Assignació d'IDs únics a cada jugador al llarg del temps per evitar pèrdues de traçabilitat durant els encreuaments (utilitzant algorismes com ByteTrack, BoT-SORT o DeepSORT).
+- **Homografia i Transformació de Perspectiva:** Projecció de les coordenades en píxels de la pantalla de televisió a un pla 2D real de la pista de bàsquet (ACB), obtenint coordenades $(X, Y)$ reals en metres.
+- **Classificació d'Equips:** Identificació automàtica de l'equip de cada jugador basant-se en l'anàlisi de color de la samarreta (Clustering K-Means / HSV).
+
+## 🛠️ Requisits del Sistema i Instal·lació
+
+Assegura't de tenir instal·lat **Python 3.8+** (es recomana entorn amb GPU compatible amb CUDA per a un rendiment òptim).
+
+1. Clona aquest repositori al teu ordinador local:
+```bash
+   git clone [https://github.com/xaviertamarit/Deteccio-i-Seguiment-Posicional-Autom-atic-en-un-partit-de-ACB-mitjanc-ant-Deep-Learning.git](https://github.com/xaviertamarit/Deteccio-i-Seguiment-Posicional-Autom-atic-en-un-partit-de-ACB-mitjanc-ant-Deep-Learning.git)
+   cd Deteccio-i-Seguiment-Posicional-Autom-atic-en-un-partit-de-ACB-mitjanc-ant-Deep-Learning
+
+```
+
+2. Instal·la les dependències necessàries:
+
+```bash
+   pip install -r requirements.txt
+
+```
+
+*(Nota: Si utilitzes llibreries principals directes, les dependències típiques inclouen `ultralytics`, `opencv-python`, `numpy`, `scikit-learn` i `matplotlib`)*.
+
+## 📂 Estructura del Repositori
+
+```text
+├── data/               # Vídeos de mostra de l'ACB i imatges de la pista 2D
+├── models/             # Pesos dels models entrenats o configuracions de YOLO
+├── src/                # Codi font del projecte
+│   ├── detection.py    # Mòdul de detecció i tracking
+│   ├── homography.py   # Càlcul de la matriu d'homografia de la pista
+│   ├── utils.py        # Funcions auxiliars (processament de color, dibuix)
+│   └── main.py         # Script principal d'execució
+├── requirements.txt    # Fitxer de dependències del sistema
+└── README.md           # Documentació del projecte
+
+```
+
+## 💻 Funcionament i Ús
+
+Per executar el pipeline complet de detecció, seguiment i projecció sobre el vídeo de mostra, executa l'script principal:
+
+```bash
+python src/main.py --input data/partit_mostra.mp4 --output output/partit_processat.mp4
+
+```
+
+### Passos del Pipeline:
+
+1. **Calibratge de la pista:** Selecció de punts clau de control per establir la matriu d'homografia entre el vídeo i la pista ACB en 2D.
+2. **Inferència del Model:** Processament del vídeo frame a frame per localitzar jugadors i la pilota.
+3. **Generació del mapa tèrmic / Tracking 2D:** Visualització en paral·lel de la retransmissió i de la representació bidimensional interactiva amb les posicions reals.
+
+## 📊 Resultats i Visualització
+
+El sistema genera un fitxer de vídeo de sortida on es pot veure:
+
+* Bounding boxes (caixes de delimitació) amb l'ID de tracking de cada jugador.
+* Un gràfic a vista de ocell (*minimap* o tàctic) on es mouen punts que representen els jugadors sobre les línies oficials de la pista ACB.
+* Exportació de dades en format `.csv` o `.json` amb les coordenades de cada element per frame per a anàlisi posterior.
+
+## ✒️ Autor
+
+* **Xavier Tamarit** - *Desenvolupament complet del projecte* - [xaviertamarit](https://www.google.com/search?q=https://github.com/xaviertamarit)
+
+---
+
+*Projecte desenvolupat amb finalitats acadèmiques i de recerca en l'àmbit de l'analítica esportiva i la intel·ligència artificial.*
+
+```
+
+```
