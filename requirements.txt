@@ -1,0 +1,11 @@
+numpy>=1.24
+opencv-python>=4.8
+Pillow>=10.0
+matplotlib>=3.7
+seaborn>=0.13
+torch>=2.1
+torchvision>=0.16
+ultralytics>=8.1
+ipywidgets>=8.1
+ipython>=8.12
+yt-dlp>=2024.1.0
