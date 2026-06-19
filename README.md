@@ -1,30 +1,41 @@
-# Detecció i Seguiment Posicional de Jugadors de Bàsquet ACB mitjançant Deep Learning
-Aquest repositori conté la implementació pràctica de l'arquitectura en cascada desacoblada dissenyada per a la detecció, re-identificació i generació de mapes de densitat de pas d'atletes de la Lliga ACB. El sistema utilitza exclusivament com a entrada el senyal de vídeo d'una retransmissió comercial de televisió, democratitzant l'accés a l'analítica avançada de rendiment sense dependre d'infraestructures de sensorització física.
-🏀 Arquitectura del Sistema
-El pipeline s'executa mitjançant un processat seqüencial modular frame a frame sota el següent esquema:
-1. Detecció Espacial (YOLOv8x): Localització de siluetes humanes en pista amb un llindar de confiança de ￼ i filtre NMS de ￼.
-2. Re-Identificació Mètrica (ResNet50 Re-ID): Extracció de l'embedding d'ADN de 2048 dimensions del BatchNorm Neck (BNNeck) amb pas de stride corregit a ￼ a la darrera capa convolucional.
-3. Filtre de Soroll Actiu: Segregació de l'estament arbitral i de dades d'entorn mitjançant classes de control d'exclusió actives i llindar de distància euclidiana mètrica de ￼.
-4. Representació d'Ocupació Espacial (KDE): Transformació de les coordenades de contacte del calçat aïllades en mapes de densitat continus en coordenades de pantalla.
+# Detecció i Seguiment Posicional Automàtic en un Partit de l'ACB mitjançant Deep Learning
+Python
+PyTorch
+CUDA
+Ultralytics YOLO
+UAB
+Aquest repositori conté la implementació pràctica de l'arquitectura en cascada desacoblada dissenyada per a la detecció, re-identificació (Re-ID) de jugadors i generació de mapes de densitat de pas. El projecte s'ha validat utilitzant com a entrada exclusiva el senyal de vídeo d'una retransmissió comercial de la Lliga ACB (Hiopos Lleida contra Asisa Joventut), oferint una alternativa analítica no invasiva de baix cost.
+📺 Demostració del Producte Final
+Pots visualitzar el resultat del processament del vídeo sencer (amb les caixes de delimitació dinàmiques, etiquetatge nominal d'atletes i l'exclusió activa d'àrbitres en directe) clicant al següent enllaç o imatge de sota:
+👉 Veure el vídeo del partit complet processat a YouTube
+Vídeo del Partit Processat
 📂 Estructura del Repositori
-￼ ⁠creacio-dataset.ipynb⁠: Quadern destinat a la descàrrega automàtica del vídeo amb ⁠yt-dlp⁠, l'extracció semiautomàtica de siluetes d'atletes sota OpenCV i el visor interactiu d'etiquetatge biomètric multiclasse amb ⁠ipywidgets⁠.
-￼ ⁠processat-video.ipynb⁠: Pipeline mestre que executa la inferència dinàmica per blocs de 7.000 frames, l'extracció en viu de l'ADN visual, el filtre de talls comercials, el protocol de prevenció d'errors CUDA OOM i l'exportació de fitxers JSON de posicions.
-￼ ⁠creacio-heatmaps.ipynb⁠: Mòdul de de dades que llegeix el fitxer estructurat de posicions en format JSON i aplica l'algorisme de densitat de Kernel (KDE) bivariant per a superposar els contorns de pas en la imatge d'OpenCV.
-￼ ⁠dataset_reid/⁠: Estructura unificada de directoris que conté els retalls biomètrics dels 19 jugadors catalogats, la classe d'àrbitres i la de soroll d'entorn, dividits en carpetes de ⁠train⁠, ⁠test/gallery⁠ i ⁠test/query⁠.
-￼ ⁠posicions_json/⁠: Emmagatzematge continu sense pèrdua de dades de les coordenades ￼ extretes del punt de contacte inferior del calçat de cada bounding box.
-￼ ⁠requirements.txt⁠: Catàleg unificat de biblioteques de Python necessàries per a l'execució del projecte.
-🖥️ Demo i Visualització de Resultats
-Per a avaluar de forma dinàmica el rendiment del programari desenvolupat d'enginyeria, es pot visualitzar el clip sencer del partit processat i netejat (amb el traçat de caixes de delimitació i l'exclusió activa d'àrbitres en directe) mitjançant el següent enllaç a YouTube:
-🎥 Vídeo del Partit Processat a YouTube (Ocult) (substitueix aquest enllaç pel link un cop l'hagis penjat)
-⚙️ Requisits d'Instal·lació i Ús
+Aquest repositori s'estructura sota una organització modular de dades que conté tant els fitxers de codi com els actius d'avaluació:
+🧠 Funcionament dels Notebooks
+1. ⁠creacio-dataset.ipynb⁠
+Estableix el flux d'enginyeria semiautomàtic per a la curació de la galeria d'ADN mètric del projecte:
+￼ Descarrega el vídeo des de la CCMA (3cat) mitjançant la utilitat ⁠yt-dlp⁠.
+￼ Llegeix frames en segons d'interès amb OpenCV i extreu caixes candidates de persones amb YOLOv8x.
+￼ Desplega una interfície interactiva amb ⁠ipywidgets⁠ on l'usuari pot assignar cada crop a un jugador o rebutjar-lo amb el botó ⁠❌ IGNORAR ELEMENT⁠.
+￼ El dataset final es compon de 36 captures per classe (20 de train, 15 de gallery i 1 de query) sumant un total de 772 imatges.
+2. ⁠processat-video.ipynb⁠
+És el nucli d'inferència del sistema, encarregat d'analitzar el partit per segments de 7.000 frames:
+￼ Aplica el detector YOLOv8x amb un llindar d'activació del 0.35 i filtre NMS de 0.45.
+￼ Retalla els candidats i calcula el vector normalitzat de 2048 dimensions de la ResNet50 Re-ID.
+￼ Aplica un filtre de seguretat mètric (rebutja talls, repeticions i primers plans si ￼ o l'àrea d'un jugador supera el ￼).
+￼ Integra un protocol defensiu contra errors de memòria de la GPU (CUDA Out Of Memory) mitjançant el context ⁠torch.no_grad()⁠ i desvinculament de tensors amb ⁠.detach().cpu().numpy()⁠.
+3. ⁠creacio-heatmaps.ipynb⁠
+Mòdul analític que importa la base de dades posicional continguda en els fitxers unificats JSON i utilitza Seaborn per projectar els contorns continus d'influència tèrmica mitjançant Estimació de Densitat de Kernel (KDE).
+⚙️ Instruccions per a la Reproducció en Local
 1. Clonar el repositori
-2. Instal·lar dependències
-Es recomana utilitzar un entorn virtual sota Python 3.10.12:
+2. Instal·lar les dependències
+Es recomana l'ús d'un entorn de treball aïllat amb Python 3.10:
 3. Executar els experiments
-￼ Executa el quadern ⁠creacio-dataset.ipynb⁠ per realitzar un cribratge o afegir noves identitats d'atletes.
-￼ Executa ⁠processat-video.ipynb⁠ per analitzar un fragment o clip de partit ACB en Full HD i generar els fitxers de coordenades unificats JSON.
-￼ Executa ⁠creacio-heatmaps.ipynb⁠ per projectar els contorns continus de pas directament sobre els fotogrames del pavelló de Lleida.
-🎓 Crèdits i Acadèmica
+￼ Executa el fitxer ⁠creacio-dataset.ipynb⁠ per a modificar, ampliar o actualitzar la galeria de control d'ADN.
+￼ Executa ⁠processat-video.ipynb⁠ per a extreure i indexar el moviment d'un clip de partit Full HD en fitxers JSON de píxels.
+￼ Executa ⁠creacio-heatmaps.ipynb⁠ per a generar i superposar les traces de de densitat de pas.
+🎓 Crèdits i Informació Acadèmica
 ￼ Autor: Xavier Tamarit
-￼ Projecte: Treball Final de Grau (TFG) en Matemàtica Computacional i Analítica de Dades.
-￼ Institució: Facultat d'Enginyeria - Universitat Autònoma de Barcelona (UAB), Juny de 2026.
+￼ Titulació: Treball Final de Grau (TFG) en Matemàtica Computacional i Analítica de Dades.
+￼ Institució: Universitat Autònoma de Barcelona (UAB) - Facultat d'Enginyeria.
+￼ Data de defensa: Juny de 2026.
