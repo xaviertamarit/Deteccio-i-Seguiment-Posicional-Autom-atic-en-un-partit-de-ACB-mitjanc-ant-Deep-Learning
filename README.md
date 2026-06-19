@@ -19,14 +19,15 @@ El cas d'ús concret implementat al repositori és el partit Hiopos Lleida – J
 |---|---|
 | `creador_dataset.ipynb` | Descarrega el vídeo del partit (`yt-dlp` + 3Cat), detecta persones amb YOLOv8x i, mitjançant una eina interactiva (`ipywidgets`), permet retallar i etiquetar manualment imatges de cada jugador per construir el dataset de Re-ID. |
 | `dataset_reid.zip` | Dataset de Re-ID resultant (1.105 imatges), organitzat en `train/`, `test/query/` i `test/gallery/`, amb una carpeta per classe (jugador). |
+|`creador_heatmap.ipynb`| Agafa els resultats dels JSON anterior i crea 2 mapes de calor per jugador.|
 | `etiquetar_i_processar_video.ipynb` | Notebook principal: defineix l'arquitectura, entrena el model de Re-ID, l'avalua i l'aplica sobre el vídeo complet del partit per generar el seguiment posicional. |
-| `posicions_jugadors*.json` | Coordenades de posició de cada jugador, exportades per trams del partit (vegeu format més avall). |
+| `posicions_jugadors*.json` | Coordenades de posició de cada jugador, exportades per trams del partit. |
 
-> ⚠️ Actualment el repositori inclou els JSON dels trams 1–9 i 14–24; falten els trams 10–13, 20 i 25 (probablement encara per generar o pujar).
+
 
 ### Classes del dataset de Re-ID
 
-26 classes en total: 12 jugadors del Hiopos Lleida, 12 jugadors de la Joventut de Badalona, una classe `Arbitre` i una classe `soroll` (fons / falsos positius), per ajudar el model a no confondre públic o àrbitres amb jugadors.
+21 classes en total: 10 jugadors del Hiopos Lleida, 9 jugadors de la Joventut de Badalona, una classe `Arbitre` i una classe `soroll` (fons / falsos positius), per ajudar el model a no confondre públic o àrbitres amb jugadors.
 
 ## 🧠 Arquitectura del model de Re-ID
 
