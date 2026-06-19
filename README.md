@@ -1,4 +1,4 @@
-Detecció i Seguiment Posicional de Jugadors de Bàsquet ACB mitjançant Deep Learning
+# Detecció i Seguiment Posicional de Jugadors de Bàsquet ACB mitjançant Deep Learning
 Aquest repositori conté la implementació pràctica de l'arquitectura en cascada desacoblada dissenyada per a la detecció, re-identificació i generació de mapes de densitat de pas d'atletes de la Lliga ACB. El sistema utilitza exclusivament com a entrada el senyal de vídeo d'una retransmissió comercial de televisió, democratitzant l'accés a l'analítica avançada de rendiment sense dependre d'infraestructures de sensorització física.
 🏀 Arquitectura del Sistema
 El pipeline s'executa mitjançant un processat seqüencial modular frame a frame sota el següent esquema:
